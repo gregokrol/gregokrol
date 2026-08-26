@@ -86,6 +86,18 @@ $syncTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(2) -Repe
 $syncSettings = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 12) -MultipleInstances IgnoreNew
 Register-ScheduledTask -TaskName "SalHacham-Sync" -Action $syncAction -Trigger $syncTrigger -Settings $syncSettings -User $taskUser -RunLevel Highest -Force | Out-Null
 
+$installedConfig = Import-ServerConfig
+if ($installedConfig.TelegramBotToken -and $installedConfig.TelegramChatId) {
+    Write-Host "מגדיר בוט טלגרם..." -ForegroundColor Cyan
+    $botAction = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$script:InstallRoot\windows\start-bot.ps1`""
+    $botTrigger = New-ScheduledTaskTrigger -AtStartup
+    $botSettings = New-ScheduledTaskSettingsSet -RestartCount 5 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
+    Register-ScheduledTask -TaskName "SalHacham-Bot" -Action $botAction -Trigger $botTrigger -Settings $botSettings -User $taskUser -RunLevel Highest -Force | Out-Null
+    Start-ScheduledTask -TaskName "SalHacham-Bot"
+} else {
+    Unregister-ScheduledTask -TaskName "SalHacham-Bot" -Confirm:$false -ErrorAction SilentlyContinue
+}
+
 Start-ScheduledTask -TaskName "SalHacham-API"
 Write-Host "ההתקנה המקומית הסתיימה." -ForegroundColor Green
 Write-Host "כעת ייפתח שלב החיבור המאובטח לאתר." -ForegroundColor Cyan

@@ -19,5 +19,8 @@ class Settings:
     inactive_city_refresh_hours: int = max(4, int(os.getenv("SAL_HACHAM_SAVED_CITY_HOURS", "24")))
     store_directory_refresh_hours: int = max(4, int(os.getenv("SAL_HACHAM_STORE_DIRECTORY_HOURS", "24")))
     price_history_days: int = max(1, min(365, int(os.getenv("SAL_HACHAM_HISTORY_DAYS", "30"))))
+    telegram_bot_token: str = os.getenv("SAL_HACHAM_TELEGRAM_BOT_TOKEN", "").strip()
+    telegram_chat_id: str = os.getenv("SAL_HACHAM_TELEGRAM_CHAT_ID", "").strip()
+    telegram_default_city: str = os.getenv("SAL_HACHAM_TELEGRAM_CITY", "").strip()
 
 settings = Settings()

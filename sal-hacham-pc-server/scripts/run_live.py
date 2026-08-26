@@ -17,6 +17,13 @@ def main() -> int:
         cwd=ROOT,
         env=env,
     )
+    bot = None
+    if env.get("SAL_HACHAM_TELEGRAM_BOT_TOKEN"):
+        bot = subprocess.Popen(
+            [sys.executable, "-m", "app.telegram_bot"],
+            cwd=ROOT,
+            env=env,
+        )
     try:
         return subprocess.call(
             [
@@ -33,12 +40,15 @@ def main() -> int:
             env=env,
         )
     finally:
-        sync.terminate()
-        try:
-            sync.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            sync.kill()
-            sync.wait()
+        for proc in (sync, bot):
+            if proc is None:
+                continue
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
 
 
 if __name__ == "__main__":

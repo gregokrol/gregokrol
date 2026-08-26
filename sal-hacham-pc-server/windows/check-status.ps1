@@ -28,6 +28,15 @@ catch {
     Write-Host "Tailscale Funnel: לא זמין" -ForegroundColor Red
 }
 
+$botTask = Get-ScheduledTask -TaskName "SalHacham-Bot" -ErrorAction SilentlyContinue
+if ($botTask) {
+    Write-Host "`nבוט טלגרם: $($botTask.State)" -ForegroundColor Cyan
+} elseif ($config.TelegramBotToken -and $config.TelegramChatId) {
+    Write-Host "`nבוט טלגרם: מוגדר אך לא מותקן - הרץ שוב את INSTALL_SERVER.cmd" -ForegroundColor Yellow
+} else {
+    Write-Host "`nבוט טלגרם: לא מוגדר" -ForegroundColor DarkGray
+}
+
 $log = Join-Path $script:InstallRoot "logs\sync.log"
 if (Test-Path $log) {
     Write-Host "`nסוף יומן הסנכרון:" -ForegroundColor Cyan

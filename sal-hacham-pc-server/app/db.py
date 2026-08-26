@@ -139,6 +139,22 @@ CREATE TABLE IF NOT EXISTS collector_state (
   value TEXT,
   updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS watch_items (
+  barcode TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  city TEXT,
+  baseline_price REAL NOT NULL,
+  last_notified_price REAL NOT NULL,
+  added_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS saved_basket_items (
+  barcode TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  qty REAL NOT NULL DEFAULT 1,
+  added_at TEXT NOT NULL
+);
 """
 
 FTS_SCHEMA = """

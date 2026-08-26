@@ -25,11 +25,17 @@ function Import-ServerConfig {
     $activeHoursValue = 4
     $savedHoursValue = 24
     $historyDaysValue = 30
+    $telegramTokenValue = ""
+    $telegramChatIdValue = ""
+    $telegramCityValue = ""
     if (Get-Variable -Name SchedulerMinutes -ErrorAction SilentlyContinue) { $schedulerValue = [int]$SchedulerMinutes }
     if (Get-Variable -Name MaxCachedCities -ErrorAction SilentlyContinue) { $maxCitiesValue = [int]$MaxCachedCities }
     if (Get-Variable -Name ActiveCityRefreshHours -ErrorAction SilentlyContinue) { $activeHoursValue = [int]$ActiveCityRefreshHours }
     if (Get-Variable -Name SavedCityRefreshHours -ErrorAction SilentlyContinue) { $savedHoursValue = [int]$SavedCityRefreshHours }
     if (Get-Variable -Name PriceHistoryDays -ErrorAction SilentlyContinue) { $historyDaysValue = [int]$PriceHistoryDays }
+    if (Get-Variable -Name TelegramBotToken -ErrorAction SilentlyContinue) { $telegramTokenValue = [string]$TelegramBotToken }
+    if (Get-Variable -Name TelegramChatId -ErrorAction SilentlyContinue) { $telegramChatIdValue = [string]$TelegramChatId }
+    if (Get-Variable -Name TelegramCity -ErrorAction SilentlyContinue) { $telegramCityValue = [string]$TelegramCity }
     return @{
         SiteUrl = $SiteUrl.TrimEnd("/")
         ApiToken = $ApiToken
@@ -39,6 +45,9 @@ function Import-ServerConfig {
         SavedCityRefreshHours = $savedHoursValue
         MaxPriceAgeHours = [int]$MaxPriceAgeHours
         PriceHistoryDays = $historyDaysValue
+        TelegramBotToken = $telegramTokenValue
+        TelegramChatId = $telegramChatIdValue
+        TelegramCity = $telegramCityValue
     }
 }
 
@@ -61,6 +70,9 @@ function Set-ServerEnvironment([hashtable]$Config) {
     $env:SAL_HACHAM_HISTORY_DAYS = [string]$Config.PriceHistoryDays
     $env:SAL_HACHAM_DB = Join-Path $script:InstallRoot "data\sal_hacham.sqlite3"
     $env:SAL_HACHAM_RAW_DIR = Join-Path $script:InstallRoot "data\raw"
+    $env:SAL_HACHAM_TELEGRAM_BOT_TOKEN = $Config.TelegramBotToken
+    $env:SAL_HACHAM_TELEGRAM_CHAT_ID = $Config.TelegramChatId
+    $env:SAL_HACHAM_TELEGRAM_CITY = $Config.TelegramCity
 }
 
 function Get-TailscaleExecutable {

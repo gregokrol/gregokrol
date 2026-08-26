@@ -116,6 +116,27 @@ python scripts/geocode_stores.py --limit 200
 - `SAL_HACHAM_MAX_CITIES=5`
 - `SAL_HACHAM_ACTIVE_CITY_HOURS=4`
 - `SAL_HACHAM_SAVED_CITY_HOURS=24`
+- `SAL_HACHAM_TELEGRAM_BOT_TOKEN` - טוקן בוט טלגרם (אופציונלי, מפעיל את הבוט)
+- `SAL_HACHAM_TELEGRAM_CHAT_ID` - מזהה הצ'אט היחיד שהבוט מגיב אליו
+- `SAL_HACHAM_TELEGRAM_CITY` - עיר ברירת מחדל לפקודות הבוט (אופציונלי)
+
+## בוט טלגרם
+כשמוגדרים `SAL_HACHAM_TELEGRAM_BOT_TOKEN` ו-`SAL_HACHAM_TELEGRAM_CHAT_ID` הבוט עולה
+אוטומטית (`run_live.py`/`run_live.sh` בלינוקס, משימת "SalHacham-Bot" ב-Windows
+דרך `INSTALL_SERVER.cmd`) ורק הצ'אט המוגדר יכול להשתמש בו.
+
+יצירת בוט: פנה ל-[@BotFather](https://t.me/BotFather) בטלגרם, `/newbot`, העתק את
+הטוקן ל-`TelegramBotToken`. לקבלת ה-chat id שלח הודעה לבוט ואז פתח
+`https://api.telegram.org/bot<TOKEN>/getUpdates` בדפדפן - ה-`chat.id` בתשובה.
+
+פקודות נכנסות (מהמשתמש לבוט):
+- `/search <מוצר>` - המחיר הזול ביותר כרגע
+- `/status` - מצב השרת והסנכרון
+- `/basket`, `/basket_add <כמות> <מוצר>`, `/basket_remove <מוצר>`, `/basket_clear` - סל שמור
+- `/watch <מוצר>`, `/unwatch <מוצר>`, `/watchlist` - מעקב אחר ירידת מחיר
+
+הודעות יוצאות אוטומטיות (מהבוט למשתמש): ירידת מחיר במוצר במעקב, ותקלה בסנכרון
+המחירים (`scripts/sync_prices.py` נכשל או הסתיים עם שגיאות).
 
 ## בדיקות
 ```bash

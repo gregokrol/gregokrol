@@ -336,5 +336,23 @@ def main() -> int:
         time.sleep(15)
 
 
+def _notify_after_run(exit_code: int) -> None:
+    from app.notifier import send
+    from app.personal_lists import check_price_drops
+
+    if exit_code != 0:
+        send("\N{WARNING SIGN} סל חכם: הסנכרון הסתיים עם שגיאות, בדוק את logs/sync.log")
+        return
+    check_price_drops(settings.db_path, send)
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        code = main()
+    except Exception as exc:
+        from app.notifier import send
+
+        send(f"\N{WARNING SIGN} סל חכם: הסנכרון קרס - {type(exc).__name__}: {exc}")
+        raise
+    _notify_after_run(code)
+    raise SystemExit(code)
