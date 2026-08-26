@@ -1,4 +1,4 @@
-$SiteUrl = "https://sal-hacham.fastnadlan.chatgpt.site"
+﻿$SiteUrl = "https://sal-hacham.fastnadlan.chatgpt.site"
 $ApiToken = "__PC_API_TOKEN__"
 $SchedulerMinutes = 60
 $MaxCachedCities = 5

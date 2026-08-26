@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $script:InstallRoot = Join-Path $env:ProgramData "SalHachamServer"

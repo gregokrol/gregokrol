@@ -1,4 +1,4 @@
-. (Join-Path $PSScriptRoot "common.ps1")
+﻿. (Join-Path $PSScriptRoot "common.ps1")
 Assert-Administrator
 $config = Import-ServerConfig
 $tailscale = Get-TailscaleExecutable

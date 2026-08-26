@@ -1,4 +1,4 @@
-. (Join-Path $PSScriptRoot "common.ps1")
+﻿. (Join-Path $PSScriptRoot "common.ps1")
 $config = Import-ServerConfig
 $headers = @{ Authorization = "Bearer $($config.ApiToken)" }
 try {
