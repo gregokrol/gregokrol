@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.db
+*.sqlite3
+.venv/
+venv/
+
+# Real credentials for this PC server - keep local only, never commit.
+# Copy windows/server-config.example.ps1 to windows/server-config.ps1 and fill it in.
+windows/server-config.ps1

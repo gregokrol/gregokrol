@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>סל חכם</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div><h1>סל חכם</h1><p>השוואת מחירי סופר, מבצעים וקופונים לפי סניף, עיר או מיקום.</p></div>
+      <span id="status" class="pill">בודק נתונים…</span>
+    </header>
+
+    <section class="panel controls">
+      <label>מה מחפשים?
+        <div class="search-row"><input id="q" placeholder="לדוגמה: חלב 3%" autocomplete="off"/><button id="search">חיפוש</button></div>
+      </label>
+      <div class="grid2">
+        <label>עיר<select id="city"><option value="">כל הארץ</option></select></label>
+        <label>טווח GPS<select id="radius"><option>5</option><option>10</option><option selected>30</option><option>50</option></select></label>
+      </div>
+      <div class="actions"><button id="gps" class="secondary">📍 השתמש במיקום שלי</button><button id="clearGps" class="ghost" hidden>בטל GPS</button></div>
+
+      <details id="basketPanel" class="collapsible-panel feature-panel">
+        <summary><span>🧺 השוואת סל מלא</span><span class="summary-meta">מצא איפה כל הסל זול יותר</span></summary>
+        <div class="details-body">
+          <p class="hint">הוסף מוצרים וכמות. המערכת מדרגת קודם סניפים שבהם נמצאו יותר מפריטי הסל.</p>
+          <div id="basketRows" class="basket-rows"></div>
+          <div class="basket-toolbar">
+            <button id="addBasketRow" class="ghost" type="button">+ הוסף מוצר</button>
+            <label class="coupon-toggle"><input id="includeCoupons" type="checkbox"> כלול קופונים/מועדון בחישוב <span class="hint-inline">(רק אם אתה זכאי)</span></label>
+            <button id="compareBasket" type="button">השווה סל</button>
+          </div>
+          <div id="basketMessage" class="message" aria-live="polite"></div>
+          <div id="basketResults" class="basket-results"></div>
+        </div>
+      </details>
+
+      <section id="storesPanel" class="collapsible-panel store-panel">
+        <button id="storesToggle" class="panel-toggle" type="button" aria-expanded="false" aria-controls="storesBody">
+          <span>חנויות באזור</span><span id="storesSummary" class="summary-meta">לחץ להצגה</span><span class="toggle-arrow" aria-hidden="true">⌄</span>
+        </button>
+        <div id="storesBody" class="details-body" hidden>
+          <div class="store-toolbar"><button id="refreshStores" class="ghost" type="button">רענן רשימה</button></div>
+          <div id="storesList" class="store-list"><p class="hint">בחר עיר או הפעל GPS כדי להציג את החנויות הרלוונטיות.</p></div>
+        </div>
+      </section>
+
+      <details id="chainsPanel" class="collapsible-panel">
+        <summary><span>סינון רשתות</span><span id="chainsSummary" class="summary-meta">הכול</span></summary>
+        <div id="chains" class="chips details-body"></div>
+      </details>
+
+      <details id="dataHealthPanel" class="collapsible-panel">
+        <summary><span>📊 בריאות הנתונים</span><span id="healthSummary" class="summary-meta">לחץ לבדיקה</span></summary>
+        <div id="healthBody" class="details-body"><p class="hint">מציג כיסוי מחירים טריים, מבצעים וקופונים לפי רשת.</p></div>
+      </details>
+
+      <p id="freshnessHint" class="hint">מוצגים רק מחירים שאומתו מול מקור טרי. נתון ישן לא מוצג כאילו הוא חי.</p>
+    </section>
+
+    <section id="message" class="message" aria-live="polite"></section>
+    <section id="results" class="results"></section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
