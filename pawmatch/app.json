@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "PawMatch",
+    "slug": "pawmatch",
+    "scheme": "pawmatch",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "PawMatch צריכה גישה לתמונות כדי שתעלה תמונה שלך ושל חיית המחמד שלך."
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pawmatch.app"
+    },
+    "android": {
+      "package": "com.pawmatch.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    }
+  }
+}
