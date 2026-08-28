@@ -1,0 +1,14 @@
+[
+  {"id":"adult-dog-owner","description":"מבוגר עם כלב וכל הפרטים","expected_discovery":true},
+  {"id":"adult-cat-owner","description":"מבוגר עם חתול וכל הפרטים","expected_discovery":true},
+  {"id":"adult-rabbit-owner","description":"מבוגר עם ארנב וכל הפרטים","expected_discovery":true},
+  {"id":"exactly-18","description":"בן/בת 18 בדיוק היום","expected_discovery":true},
+  {"id":"minor","description":"מתחת לגיל 18","expected_discovery":false},
+  {"id":"missing-birthdate","description":"ללא תאריך לידה","expected_discovery":false},
+  {"id":"missing-name","description":"ללא שם","expected_discovery":false},
+  {"id":"missing-pet-name","description":"ללא שם חיית מחמד","expected_discovery":false},
+  {"id":"missing-pet-type","description":"ללא סוג חיית מחמד","expected_discovery":false},
+  {"id":"missing-human-photo","description":"ללא תמונת אדם","expected_discovery":false},
+  {"id":"missing-pet-photo","description":"אדם ללא הוכחת חיית מחמד / ללא תמונת חיה","expected_discovery":false},
+  {"id":"no-photos","description":"ללא תמונות בכלל","expected_discovery":false}
+]

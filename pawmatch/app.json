@@ -14,6 +14,15 @@
         {
           "photosPermission": "PawMatch צריכה גישה לתמונות כדי שתעלה תמונה שלך ושל חיית המחמד שלך."
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFF7F3",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain"
+        }
       ]
     ],
     "ios": {
@@ -21,11 +30,17 @@
       "bundleIdentifier": "com.pawmatch.app"
     },
     "android": {
-      "package": "com.pawmatch.app"
+      "package": "com.pawmatch.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFF7F3"
+      }
     },
     "web": {
       "bundler": "metro",
-      "output": "static"
-    }
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
+    "icon": "./assets/icon.png"
   }
 }

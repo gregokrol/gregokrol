@@ -14,7 +14,7 @@ export default function Index() {
   }
 
   if (!session) {
-    return <Redirect href="/(auth)/sign-in" />;
+    return <Redirect href="/welcome" />;
   }
 
   if (!profile?.is_complete) {

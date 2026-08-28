@@ -1,35 +1,46 @@
-import { Image, StyleSheet, Text, View } from "react-native";
-import type { Profile, ProfilePhoto } from "@/lib/types";
+import { Image, StyleSheet, Text, View } from 'react-native';
+import type { ProfilePhoto, PublicProfile } from '@/lib/types';
+import { colors, radii, shadows, spacing } from '@/lib/theme';
 
 interface SwipeCardProps {
-  profile: Profile;
+  profile: PublicProfile;
   photos: ProfilePhoto[];
 }
 
 export function SwipeCard({ profile, photos }: SwipeCardProps) {
-  const humanPhoto = photos.find((photo) => photo.kind === "human");
-  const petPhoto = photos.find((photo) => photo.kind === "pet");
+  const humanPhoto = photos.find((photo) => photo.kind === 'human');
+  const petPhoto = photos.find((photo) => photo.kind === 'pet');
+  const chips = [profile.pet_type ? `🐾 ${profile.pet_type}` : null, profile.pet_name ? `❤️ ${profile.pet_name}` : null]
+    .filter(Boolean)
+    .slice(0, 2) as string[];
 
   return (
     <View style={styles.card}>
       {humanPhoto ? (
-        <Image source={{ uri: humanPhoto.url }} style={styles.mainPhoto} />
+        <Image source={{ uri: humanPhoto.display_url ?? humanPhoto.url }} style={styles.mainPhoto} />
       ) : (
-        <View style={[styles.mainPhoto, styles.placeholder]} />
+        <View style={[styles.mainPhoto, styles.placeholder]}>
+          <Text style={styles.placeholderEmoji}>📷</Text>
+          <Text style={styles.placeholderText}>עדיין אין תמונה</Text>
+        </View>
       )}
 
-      {petPhoto ? (
-        <Image source={{ uri: petPhoto.url }} style={styles.petBadge} />
-      ) : null}
+      {petPhoto ? <Image source={{ uri: petPhoto.display_url ?? petPhoto.url }} style={styles.petBadge} /> : null}
 
-      <View style={styles.info}>
-        <Text style={styles.name}>{profile.name}</Text>
-        {profile.pet_name || profile.pet_type ? (
-          <Text style={styles.pet}>
-            🐾 {profile.pet_name} {profile.pet_type ? `(${profile.pet_type})` : ""}
-          </Text>
-        ) : null}
-        {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
+      <View style={styles.overlay}>
+        <View style={styles.infoBox}>
+          <Text style={styles.name}>{profile.name}</Text>
+          {!!chips.length && (
+            <View style={styles.chipsRow}>
+              {chips.map((chip) => (
+                <View key={chip} style={styles.chip}>
+                  <Text style={styles.chipText}>{chip}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+          {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : <Text style={styles.bio}>מחפש/ת התאמה דרך אהבה אמיתית לחיות מחמד.</Text>}
+        </View>
       </View>
     </View>
   );
@@ -37,28 +48,34 @@ export function SwipeCard({ profile, photos }: SwipeCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
+    flex: 1,
+    minHeight: 460,
+    borderRadius: radii.xl,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.card,
   },
-  mainPhoto: { width: "100%", aspectRatio: 3 / 4, backgroundColor: "#eee" },
-  placeholder: { alignItems: "center", justifyContent: "center" },
+  mainPhoto: { width: '100%', height: '100%', backgroundColor: '#eee' },
+  placeholder: { alignItems: 'center', justifyContent: 'center', gap: 10 },
+  placeholderEmoji: { fontSize: 42 },
+  placeholderText: { fontSize: 16, color: colors.textMuted, fontWeight: '600' },
+  overlay: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: spacing.md },
+  infoBox: { backgroundColor: 'rgba(25,34,55,0.74)', borderRadius: radii.lg, padding: spacing.md, gap: 8 },
   petBadge: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 2,
-    borderColor: "#fff",
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 3,
+    borderColor: '#fff',
   },
-  info: { padding: 16, gap: 4 },
-  name: { fontSize: 22, fontWeight: "700" },
-  pet: { fontSize: 15, color: "#555" },
-  bio: { fontSize: 14, color: "#333", marginTop: 4 },
+  name: { fontSize: 28, fontWeight: '800', color: '#fff' },
+  chipsRow: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8 },
+  chip: { backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 7 },
+  chipText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  bio: { fontSize: 14, lineHeight: 20, color: 'rgba(255,255,255,0.92)' },
 });

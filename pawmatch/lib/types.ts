@@ -4,19 +4,24 @@ export interface ProfilePhoto {
   id: string;
   profile_id: string;
   url: string;
+  storage_path: string | null;
+  display_url?: string;
   kind: PhotoKind;
   position: number;
 }
 
-export interface Profile {
+export interface PublicProfile {
   id: string;
   name: string;
-  birthdate: string | null;
   bio: string;
   pet_name: string;
   pet_type: string;
   is_complete: boolean;
   created_at: string;
+}
+
+export interface Profile extends PublicProfile {
+  birthdate: string | null;
 }
 
 export type SwipeDirection = "like" | "pass";
