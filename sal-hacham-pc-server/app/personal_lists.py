@@ -3,9 +3,22 @@ from __future__ import annotations
 from typing import Callable
 
 from .city_activation import activate_city
+from .city_cache import collector_state_get, collector_state_set
 from .config import settings
 from .db import db, utc_now_iso
 from .service import search_prices
+
+BOT_CITY_KEY = "telegram_bot_city"
+
+
+def get_bot_city(db_path) -> str | None:
+    """The city the Telegram bot searches in, set via /city or on first contact."""
+    return collector_state_get(db_path, BOT_CITY_KEY) or (settings.telegram_default_city or None)
+
+
+def set_bot_city(db_path, city: str) -> None:
+    collector_state_set(db_path, BOT_CITY_KEY, city)
+    activate_city(city)
 
 
 def best_match(db_path, query: str, city: str | None) -> dict | None:

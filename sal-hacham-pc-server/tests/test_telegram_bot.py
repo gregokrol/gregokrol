@@ -12,6 +12,7 @@ from app.db import db, init_db
 
 @pytest.fixture
 def wired_db(tmp_path: Path, monkeypatch):
+    """A DB with sample data and a city already configured (an already-set-up bot)."""
     db_path = tmp_path / "bot.sqlite3"
     init_db(db_path)
     now = datetime.now(timezone.utc).isoformat()
@@ -31,6 +32,10 @@ def wired_db(tmp_path: Path, monkeypatch):
             (now, now),
         )
     monkeypatch.setattr(settings, "db_path", db_path)
+
+    from app.personal_lists import set_bot_city
+
+    set_bot_city(db_path, "באר שבע")
     return db_path
 
 
@@ -89,6 +94,37 @@ def test_plain_text_without_slash_is_treated_as_search(wired_db, captured_replie
 def test_bidi_control_char_before_command_is_stripped(wired_db, captured_replies):
     telegram_bot._handle_message(1, "‏/search חלב 3%")
     assert "10" in captured_replies[0][1]
+
+
+def test_first_contact_prompts_for_city(tmp_path, monkeypatch, captured_replies):
+    db_path = tmp_path / "fresh.sqlite3"
+    init_db(db_path)
+    monkeypatch.setattr(settings, "db_path", db_path)
+
+    telegram_bot._handle_message(1, "/start")
+    assert "באיזו עיר" in captured_replies[-1][1]
+
+    telegram_bot._handle_message(1, "באר שבע")
+    assert "העיר עודכנה" in captured_replies[-1][1]
+
+    from app.personal_lists import get_bot_city
+
+    assert get_bot_city(db_path) == "באר שבע"
+
+    telegram_bot._handle_message(1, "/start")
+    assert "פקודות זמינות" in captured_replies[-1][1]
+
+
+def test_city_command_shows_and_changes_city(wired_db, captured_replies):
+    telegram_bot._handle_message(1, "/city")
+    assert "באר שבע" in captured_replies[-1][1]
+
+    telegram_bot._handle_message(1, "/city תל אביב")
+    assert "תל אביב" in captured_replies[-1][1]
+
+    from app.personal_lists import get_bot_city
+
+    assert get_bot_city(wired_db) == "תל אביב"
 
 
 def test_register_bot_commands_calls_set_my_commands(monkeypatch):

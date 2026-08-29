@@ -19,10 +19,12 @@ from .personal_lists import (
     add_basket_item,
     add_watch_item,
     clear_basket,
+    get_bot_city,
     list_basket_items,
     list_watch_items,
     remove_basket_item,
     remove_watch_item,
+    set_bot_city,
 )
 from .service import search_prices, status
 
@@ -30,6 +32,7 @@ API_BASE = "https://api.telegram.org/bot{token}/{method}"
 
 BOT_COMMANDS = [
     ("search", "חיפוש מחיר זול ביותר למוצר"),
+    ("city", "הצגה או שינוי של עיר החיפוש"),
     ("status", "מצב השרת והסנכרון"),
     ("basket", "הצגת הסל השמור והחנות הזולה ביותר"),
     ("basket_add", "הוספת מוצר לסל השמור"),
@@ -41,10 +44,13 @@ BOT_COMMANDS = [
     ("help", "רשימת הפקודות"),
 ]
 
+WELCOME_TEXT = "ברוך הבא לבוט סל חכם!\nבאיזו עיר אתה קונה? פשוט הקלד את שם העיר (למשל: באר שבע)."
+
 HELP_TEXT = (
     "אפשר גם לכתוב רק את שם המוצר, בלי /search, כדי לחפש ישירות.\n\n"
     "פקודות זמינות:\n"
     "/search <מוצר> - חיפוש מחיר זול ביותר\n"
+    "/city <עיר> - הצגה או שינוי של עיר החיפוש\n"
     "/status - מצב השרת והסנכרון\n"
     "/basket - הצגת הסל השמור והחנות הזולה ביותר\n"
     "/basket_add <כמות> <מוצר> - הוספה לסל השמור\n"
@@ -84,11 +90,12 @@ def _cmd_search(chat_id, arg: str) -> None:
     if not arg:
         _reply(chat_id, "שימוש: /search חלב 3%")
         return
-    activate_city(settings.telegram_default_city or None)
+    city = get_bot_city(settings.db_path)
+    activate_city(city)
     result = search_prices(
         settings.db_path,
         arg,
-        settings.telegram_default_city or None,
+        city,
         None,
         None,
         settings.default_radius_km,
@@ -120,11 +127,12 @@ def _cmd_basket(chat_id) -> None:
     if not items:
         _reply(chat_id, "הסל השמור ריק. הוסף עם /basket_add <כמות> <מוצר>.")
         return
-    activate_city(settings.telegram_default_city or None)
+    city = get_bot_city(settings.db_path)
+    activate_city(city)
     result = compare_basket(
         settings.db_path,
         [{"q": i["label"], "qty": i["qty"]} for i in items],
-        settings.telegram_default_city or None,
+        city,
         None,
         None,
         settings.default_radius_km,
@@ -154,7 +162,7 @@ def _cmd_basket_add(chat_id, arg: str) -> None:
     if not query:
         _reply(chat_id, "שימוש: /basket_add 2 חלב 3%")
         return
-    match = add_basket_item(settings.db_path, query, qty, settings.telegram_default_city or None)
+    match = add_basket_item(settings.db_path, query, qty, get_bot_city(settings.db_path))
     if not match:
         _reply(chat_id, f'לא נמצא מוצר תואם ל-"{query}".')
         return
@@ -173,7 +181,7 @@ def _cmd_watch(chat_id, arg: str) -> None:
     if not arg:
         _reply(chat_id, "שימוש: /watch חלב 3%")
         return
-    match = add_watch_item(settings.db_path, arg, settings.telegram_default_city or None)
+    match = add_watch_item(settings.db_path, arg, get_bot_city(settings.db_path))
     if not match:
         _reply(chat_id, f'לא נמצא מוצר תואם ל-"{arg}".')
         return
@@ -202,10 +210,30 @@ def _cmd_watchlist(chat_id) -> None:
     _reply(chat_id, "\n".join(lines))
 
 
+def _cmd_city(chat_id, arg: str) -> None:
+    if not arg:
+        current = get_bot_city(settings.db_path)
+        if current:
+            _reply(chat_id, f"העיר הנוכחית: {current}\nלשינוי: /city <עיר חדשה>")
+        else:
+            _reply(chat_id, "עדיין לא הוגדרה עיר. שלח /city <עיר>, למשל: /city באר שבע")
+        return
+    set_bot_city(settings.db_path, arg)
+    _reply(chat_id, f"העיר עודכנה ל-{arg}. מתחיל לסרוק מחירים - זה יכול לקחת כמה דקות בפעם הראשונה.")
+
+
+def _cmd_start(chat_id, arg: str) -> None:
+    if get_bot_city(settings.db_path):
+        _reply(chat_id, HELP_TEXT)
+    else:
+        _reply(chat_id, WELCOME_TEXT)
+
+
 COMMANDS = {
-    "/start": lambda chat_id, arg: _reply(chat_id, HELP_TEXT),
+    "/start": lambda chat_id, arg: _cmd_start(chat_id, arg),
     "/help": lambda chat_id, arg: _reply(chat_id, HELP_TEXT),
     "/search": lambda chat_id, arg: _cmd_search(chat_id, arg),
+    "/city": lambda chat_id, arg: _cmd_city(chat_id, arg),
     "/status": lambda chat_id, arg: _cmd_status(chat_id),
     "/basket": lambda chat_id, arg: _cmd_basket(chat_id),
     "/basket_add": lambda chat_id, arg: _cmd_basket_add(chat_id, arg),
@@ -222,9 +250,14 @@ def _handle_message(chat_id, text: str) -> None:
     if not text:
         return
     if not text.startswith("/"):
-        # A message with no leading slash is treated as a plain search query,
-        # so looking up a price doesn't require remembering command syntax.
-        _cmd_search(chat_id, text)
+        if get_bot_city(settings.db_path):
+            # A message with no leading slash is treated as a plain search query,
+            # so looking up a price doesn't require remembering command syntax.
+            _cmd_search(chat_id, text)
+        else:
+            # No city configured yet: the first plain-text message sets it,
+            # so a brand-new install works from "/start" without editing files.
+            _cmd_city(chat_id, text)
         return
     parts = text.split(maxsplit=1)
     cmd = parts[0].split("@")[0].lower()
