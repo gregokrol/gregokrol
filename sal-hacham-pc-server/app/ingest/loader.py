@@ -8,7 +8,7 @@ from ..price_history import record_price_observation
 from ..source_registry import CHAIN_DISPLAY
 from .xml_parser import parse_records, timestamp_from_filename
 
-PARSER_VERSION = 4
+PARSER_VERSION = 5
 
 CHAIN_ID_TO_KEY = {
     "7290027600007": "SHUFERSAL",
@@ -89,12 +89,12 @@ def ingest_file(db_path: Path, path: Path, chain_key_override: str | None = None
             )
         for p in rec["products"]:
             con.execute(
-                """INSERT INTO products(barcode,name,manufacturer,updated_at,is_demo) VALUES(?,?,?,?,0)
+                """INSERT INTO products(barcode,name,manufacturer,package_label,updated_at,is_demo) VALUES(?,?,?,?,?,0)
                 ON CONFLICT(barcode) DO UPDATE SET
-                  name=excluded.name,manufacturer=excluded.manufacturer,
+                  name=excluded.name,manufacturer=excluded.manufacturer,package_label=excluded.package_label,
                   updated_at=excluded.updated_at,is_demo=0
                 WHERE excluded.updated_at >= products.updated_at""",
-                (p["barcode"], p["name"], p["manufacturer"], p["updated_at"]),
+                (p["barcode"], p["name"], p["manufacturer"], p.get("package_label"), p["updated_at"]),
             )
 
         removed = 0

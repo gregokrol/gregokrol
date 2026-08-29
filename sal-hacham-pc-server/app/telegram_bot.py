@@ -90,10 +90,38 @@ def _reply(chat_id, text: str, *, ask_for_city: bool = False) -> None:
 
 
 def _format_offer(offer: dict) -> str:
-    parts = [f"{offer['price']} ש\"ח - {offer['product_name']}", f"{offer['chain_name']} {offer['store_name']}"]
+    name = offer["product_name"]
+    if offer.get("package_label"):
+        name = f"{name} ({offer['package_label']})"
+    parts = [f"{offer['price']} ש\"ח - {name}", f"{offer['chain_name']} {offer['store_name']}"]
     if offer.get("city"):
         parts.append(offer["city"])
     return " | ".join(parts)
+
+
+def _diversify_by_chain(hits: list[dict], limit: int, max_per_chain: int = 1) -> list[dict]:
+    """Prefer one branch per chain first, so a chain with many branches in the
+    same city (all at its own cheapest price) doesn't crowd out every other
+    chain from a short result list - the point of the search is comparing
+    across chains, not listing every branch of the cheapest one."""
+    chosen: list[dict] = []
+    counts: dict[str, int] = {}
+    for h in hits:
+        key = h.get("chain_key")
+        if counts.get(key, 0) < max_per_chain:
+            chosen.append(h)
+            counts[key] = counts.get(key, 0) + 1
+        if len(chosen) >= limit:
+            return chosen
+    if len(chosen) < limit:
+        seen = {(h["store_id"], h["barcode"]) for h in chosen}
+        for h in hits:
+            if (h["store_id"], h["barcode"]) in seen:
+                continue
+            chosen.append(h)
+            if len(chosen) >= limit:
+                break
+    return chosen
 
 
 def _cmd_search(chat_id, arg: str) -> None:
@@ -111,10 +139,10 @@ def _cmd_search(chat_id, arg: str) -> None:
         settings.default_radius_km,
         settings.max_price_age_hours,
         None,
-        max_results=5,
+        max_results=30,
         history_days=settings.price_history_days,
     )
-    hits = result.get("results") or []
+    hits = _diversify_by_chain(result.get("results") or [], limit=5)
     if not hits:
         _reply(chat_id, f'לא נמצא מחיר טרי עבור "{arg}".')
         return

@@ -61,6 +61,28 @@ def _int(v: str | None) -> int | None:
         return None
 
 
+def _qty_text(v: str | None) -> str | None:
+    n = _float(v)
+    if n is None:
+        return None
+    if n == int(n):
+        return str(int(n))
+    return f"{n:.3f}".rstrip("0").rstrip(".")
+
+
+def _package_label(m: dict[str, str]) -> str | None:
+    # Quantity + UnitQty/UnitOfMeasure describe the package size (e.g. "1 ליטר"),
+    # separate from UnitOfMeasurePrice which is a per-unit price, not a label.
+    quantity = _qty_text(_first(m, "quantity"))
+    unit = _first(m, "unitqty", "unitofmeasure", "measureunit")
+    parts = [p for p in (quantity, unit) if p and p != "0"]
+    label = " ".join(parts) if parts else None
+    pack = _qty_text(_first(m, "qtyinpackage"))
+    if pack and pack not in ("0", "1"):
+        label = f"{label} x{pack}" if label else f"x{pack}"
+    return label
+
+
 def _timestamp(v: str | None, fallback: str | None = None) -> str | None:
     if v:
         s = v.strip().replace("Z", "+00:00")
@@ -243,6 +265,7 @@ def parse_records(path: Path) -> dict:
                     "barcode": barcode,
                     "name": pname,
                     "manufacturer": _first(m, "manufacturename", "manufacturer", "brand"),
+                    "package_label": _package_label(m),
                     "updated_at": updated_at,
                 })
             if barcode and (price is not None or status == "0"):

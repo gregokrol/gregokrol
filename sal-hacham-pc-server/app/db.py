@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS products (
   barcode TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   manufacturer TEXT,
+  package_label TEXT,
   updated_at TEXT NOT NULL,
   is_demo INTEGER NOT NULL DEFAULT 0
 );
@@ -220,6 +221,10 @@ def init_db(path: Path) -> None:
             if "observed_at" not in cols:
                 con.execute("ALTER TABLE prices ADD COLUMN observed_at TEXT")
                 con.execute("UPDATE prices SET observed_at=updated_at WHERE observed_at IS NULL")
+        if "products" in existing_tables:
+            cols = {r[1] for r in con.execute("PRAGMA table_info(products)").fetchall()}
+            if "package_label" not in cols:
+                con.execute("ALTER TABLE products ADD COLUMN package_label TEXT")
         con.executescript(SCHEMA)
         con.execute("UPDATE prices SET observed_at=updated_at WHERE observed_at IS NULL")
         _init_fts(con)

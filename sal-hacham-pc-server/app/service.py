@@ -92,7 +92,7 @@ def search_prices(
         per_store_limit = max(1, min(20, max_results // max(1, len(stores))))
         rows = con.execute(
             """WITH ranked AS (
-                   SELECT p.barcode,p.name,p.manufacturer,pr.price,pr.unit_price,pr.updated_at,
+                   SELECT p.barcode,p.name,p.manufacturer,p.package_label,pr.price,pr.unit_price,pr.updated_at,
                           pr.observed_at,pr.is_demo,s.id store_id,s.chain_key,s.chain_name,
                           s.store_number,s.name store_name,s.city,s.address,s.lat,s.lng,
                           wp.relevance,ws.distance,h.low_price history_low_price,
@@ -126,6 +126,7 @@ def search_prices(
         "barcode": r["barcode"],
         "product_name": r["name"],
         "manufacturer": r["manufacturer"],
+        "package_label": r["package_label"],
         "price": r["price"],
         "unit_price": r["unit_price"],
         "updated_at": r["updated_at"],
