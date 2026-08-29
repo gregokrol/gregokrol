@@ -14,5 +14,5 @@ $PriceHistoryDays = 30
 $TelegramBotToken = ""
 # Chat id is not sensitive by itself (useless without the token above), so this
 # one is a real personal default: Gregori's "סל חכם" bot chat.
-$TelegramChatId = "597409786"
+$TelegramChatId = "544409710"
 $TelegramCity = ""
