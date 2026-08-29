@@ -27,7 +27,19 @@ function Resolve-SystemPython {
     $launcher = Get-Command py.exe -ErrorAction SilentlyContinue
     if ($launcher) {
         $launcherPath = $launcher.Source
-        $path = & $launcherPath -3.12 -c "import sys; print(sys.executable)" 2>$null
+        # py.exe writes to stderr and exits non-zero when -3.12 isn't installed - that's
+        # an expected "not found" outcome here, not a script-ending failure, so errors
+        # from this one call must not propagate under the script's $ErrorActionPreference.
+        $previousPreference = $ErrorActionPreference
+        $ErrorActionPreference = "SilentlyContinue"
+        $path = $null
+        try {
+            $path = & $launcherPath -3.12 -c "import sys; print(sys.executable)" 2>$null
+        } catch {
+            $path = $null
+        } finally {
+            $ErrorActionPreference = $previousPreference
+        }
         if ($LASTEXITCODE -eq 0 -and $path) { return $path.Trim() }
     }
     $known = Join-Path $env:LocalAppData "Programs\Python\Python312\python.exe"
