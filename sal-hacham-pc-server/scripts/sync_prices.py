@@ -91,10 +91,14 @@ class SyncLock:
 
 
 def _scraper_imports():
+    # A plain Exception, not SystemExit: this runs inside refresh_city()'s
+    # try/except, which must see the failure to release the city's "running"
+    # claim (fail_city_refresh) - SystemExit is a BaseException and would
+    # skip that cleanup, leaving the city stuck and un-refreshable for hours.
     try:
         from il_supermarket_scarper import ScarpingTask, ScraperFactory
     except ImportError:
-        raise SystemExit(
+        raise RuntimeError(
             "Missing live scraper. Install it with:\n"
             "  python -m pip install -r requirements-live.txt\n"
             "Then run this command again."
@@ -106,7 +110,7 @@ def _validate_chains(chains: list[str], factory) -> None:
     valid = set(factory.all_scrapers_name())
     invalid = [chain for chain in chains if chain not in valid]
     if invalid:
-        raise SystemExit(f"Unsupported scraper identifiers: {', '.join(invalid)}")
+        raise RuntimeError(f"Unsupported scraper identifiers: {', '.join(invalid)}")
 
 
 def run_scraper(
