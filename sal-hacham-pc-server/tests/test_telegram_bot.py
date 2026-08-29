@@ -78,3 +78,29 @@ def test_watch_then_watchlist(wired_db, captured_replies):
     telegram_bot._handle_message(1, "/watch חלב 3%")
     telegram_bot._handle_message(1, "/watchlist")
     assert "חלב" in captured_replies[-1][1]
+
+
+def test_plain_text_without_slash_is_treated_as_search(wired_db, captured_replies):
+    telegram_bot._handle_message(1, "חלב 3%")
+    assert "10" in captured_replies[0][1]
+    assert "חלב" in captured_replies[0][1]
+
+
+def test_bidi_control_char_before_command_is_stripped(wired_db, captured_replies):
+    telegram_bot._handle_message(1, "‏/search חלב 3%")
+    assert "10" in captured_replies[0][1]
+
+
+def test_register_bot_commands_calls_set_my_commands(monkeypatch):
+    calls: list[tuple[str, dict]] = []
+
+    def fake_call(method, http_timeout=20.0, **params):
+        calls.append((method, params))
+        return {"ok": True}
+
+    monkeypatch.setattr(telegram_bot, "_call", fake_call)
+    telegram_bot._register_bot_commands()
+
+    assert calls[0][0] == "setMyCommands"
+    names = {c["command"] for c in calls[0][1]["commands"]}
+    assert {"search", "help", "basket_add", "watch"}.issubset(names)

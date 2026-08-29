@@ -129,8 +129,11 @@ python scripts/geocode_stores.py --limit 200
 הטוקן ל-`TelegramBotToken`. לקבלת ה-chat id שלח הודעה לבוט ואז פתח
 `https://api.telegram.org/bot<TOKEN>/getUpdates` בדפדפן - ה-`chat.id` בתשובה.
 
+הבוט רושם את הפקודות שלו אצל טלגרם (`setMyCommands`), כך שהקלדת `/` בצ'אט מציגה תפריט
+עם כל הפקודות והתיאור שלהן. אפשר גם לוותר על `/search` ופשוט לכתוב את שם המוצר.
+
 פקודות נכנסות (מהמשתמש לבוט):
-- `/search <מוצר>` - המחיר הזול ביותר כרגע
+- `<מוצר>` (בלי סלאש) או `/search <מוצר>` - המחיר הזול ביותר כרגע
 - `/status` - מצב השרת והסנכרון
 - `/basket`, `/basket_add <כמות> <מוצר>`, `/basket_remove <מוצר>`, `/basket_clear` - סל שמור
 - `/watch <מוצר>`, `/unwatch <מוצר>`, `/watchlist` - מעקב אחר ירידת מחיר

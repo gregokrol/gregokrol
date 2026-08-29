@@ -27,7 +27,21 @@ from .service import search_prices, status
 
 API_BASE = "https://api.telegram.org/bot{token}/{method}"
 
+BOT_COMMANDS = [
+    ("search", "חיפוש מחיר זול ביותר למוצר"),
+    ("status", "מצב השרת והסנכרון"),
+    ("basket", "הצגת הסל השמור והחנות הזולה ביותר"),
+    ("basket_add", "הוספת מוצר לסל השמור"),
+    ("basket_remove", "הסרת מוצר מהסל השמור"),
+    ("basket_clear", "ריקון הסל השמור"),
+    ("watch", "התראה כשמחיר מוצר יורד"),
+    ("unwatch", "הפסקת מעקב אחר מוצר"),
+    ("watchlist", "רשימת המוצרים במעקב"),
+    ("help", "רשימת הפקודות"),
+]
+
 HELP_TEXT = (
+    "אפשר גם לכתוב רק את שם המוצר, בלי /search, כדי לחפש ישירות.\n\n"
     "פקודות זמינות:\n"
     "/search <מוצר> - חיפוש מחיר זול ביותר\n"
     "/status - מצב השרת והסנכרון\n"
@@ -39,6 +53,10 @@ HELP_TEXT = (
     "/unwatch <מוצר או ברקוד> - הפסקת מעקב\n"
     "/watchlist - רשימת המוצרים במעקב\n"
 )
+
+# Hebrew/RTL keyboards can prepend invisible bidi-control characters to a typed
+# message, which would otherwise silently break exact command matching below.
+_BIDI_STRIP_TABLE = str.maketrans("", "", "‎‏‪‫‬‭‮⁦⁧⁨⁩")
 
 
 def _call(method: str, http_timeout: float = 20.0, **params) -> dict:
@@ -197,9 +215,15 @@ COMMANDS = {
 
 
 def _handle_message(chat_id, text: str) -> None:
-    parts = text.strip().split(maxsplit=1)
-    if not parts:
+    text = text.translate(_BIDI_STRIP_TABLE).strip()
+    if not text:
         return
+    if not text.startswith("/"):
+        # A message with no leading slash is treated as a plain search query,
+        # so looking up a price doesn't require remembering command syntax.
+        _cmd_search(chat_id, text)
+        return
+    parts = text.split(maxsplit=1)
     cmd = parts[0].split("@")[0].lower()
     arg = parts[1].strip() if len(parts) > 1 else ""
     handler = COMMANDS.get(cmd)
@@ -209,11 +233,20 @@ def _handle_message(chat_id, text: str) -> None:
     handler(chat_id, arg)
 
 
+def _register_bot_commands() -> None:
+    commands = [{"command": name, "description": desc} for name, desc in BOT_COMMANDS]
+    try:
+        _call("setMyCommands", commands=commands)
+    except httpx.HTTPError as exc:
+        print(f"Could not register Telegram command menu: {exc}", flush=True)
+
+
 def run_polling() -> None:
     if not settings.telegram_bot_token:
         print("SAL_HACHAM_TELEGRAM_BOT_TOKEN not set; Telegram bot disabled.", flush=True)
         return
     init_db(settings.db_path)
+    _register_bot_commands()
     offset = 0
     print("Telegram bot polling started.", flush=True)
     while True:
