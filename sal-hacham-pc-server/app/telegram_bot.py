@@ -44,7 +44,9 @@ BOT_COMMANDS = [
     ("help", "רשימת הפקודות"),
 ]
 
-WELCOME_TEXT = "ברוך הבא לבוט סל חכם!\nבאיזו עיר אתה קונה? פשוט הקלד את שם העיר (למשל: באר שבע)."
+CITY_BUTTON_TEXT = "\N{CITYSCAPE} שינוי עיר"
+CITY_PROMPT_TEXT = "באיזו עיר לחפש? הקלד את שם העיר (למשל: באר שבע)."
+WELCOME_TEXT = f"ברוך הבא לבוט סל חכם!\n{CITY_PROMPT_TEXT}"
 
 HELP_TEXT = (
     "אפשר גם לכתוב רק את שם המוצר, בלי /search, כדי לחפש ישירות.\n\n"
@@ -73,10 +75,18 @@ def _call(method: str, http_timeout: float = 20.0, **params) -> dict:
     return response.json()
 
 
-def _reply(chat_id, text: str) -> None:
+def _main_keyboard() -> dict:
+    return {"keyboard": [[{"text": CITY_BUTTON_TEXT}]], "resize_keyboard": True}
+
+
+def _reply(chat_id, text: str, *, ask_for_city: bool = False) -> None:
     if not text.strip():
         text = "(אין תוצאות)"
-    _call("sendMessage", chat_id=chat_id, text=text[:4000])
+    if ask_for_city:
+        reply_markup = {"force_reply": True, "input_field_placeholder": "שם העיר..."}
+    else:
+        reply_markup = _main_keyboard()
+    _call("sendMessage", chat_id=chat_id, text=text[:4000], reply_markup=reply_markup)
 
 
 def _format_offer(offer: dict) -> str:
@@ -214,9 +224,9 @@ def _cmd_city(chat_id, arg: str) -> None:
     if not arg:
         current = get_bot_city(settings.db_path)
         if current:
-            _reply(chat_id, f"העיר הנוכחית: {current}\nלשינוי: /city <עיר חדשה>")
+            _reply(chat_id, f"העיר הנוכחית: {current}\nלשינוי, לחץ על הכפתור '{CITY_BUTTON_TEXT}' למטה.")
         else:
-            _reply(chat_id, "עדיין לא הוגדרה עיר. שלח /city <עיר>, למשל: /city באר שבע")
+            _reply(chat_id, CITY_PROMPT_TEXT, ask_for_city=True)
         return
     set_bot_city(settings.db_path, arg)
     _reply(chat_id, f"העיר עודכנה ל-{arg}. מתחיל לסרוק מחירים - זה יכול לקחת כמה דקות בפעם הראשונה.")
@@ -226,7 +236,7 @@ def _cmd_start(chat_id, arg: str) -> None:
     if get_bot_city(settings.db_path):
         _reply(chat_id, HELP_TEXT)
     else:
-        _reply(chat_id, WELCOME_TEXT)
+        _reply(chat_id, WELCOME_TEXT, ask_for_city=True)
 
 
 COMMANDS = {
@@ -245,19 +255,27 @@ COMMANDS = {
 }
 
 
-def _handle_message(chat_id, text: str) -> None:
-    text = text.translate(_BIDI_STRIP_TABLE).strip()
+def _handle_message(chat_id, message: dict) -> None:
+    text = (message.get("text") or "").translate(_BIDI_STRIP_TABLE).strip()
     if not text:
         return
+
+    if text == CITY_BUTTON_TEXT:
+        _reply(chat_id, CITY_PROMPT_TEXT, ask_for_city=True)
+        return
+
     if not text.startswith("/"):
-        if get_bot_city(settings.db_path):
+        # Telegram tags a message as replying to the bot's own force-reply prompt,
+        # so that reply is unambiguously the requested city regardless of its text.
+        replying_to_bot = bool((message.get("reply_to_message") or {}).get("from", {}).get("is_bot"))
+        if replying_to_bot or not get_bot_city(settings.db_path):
+            # No city configured yet: the first plain-text message sets it, so a
+            # brand-new install works from "/start" without editing any files.
+            _cmd_city(chat_id, text)
+        else:
             # A message with no leading slash is treated as a plain search query,
             # so looking up a price doesn't require remembering command syntax.
             _cmd_search(chat_id, text)
-        else:
-            # No city configured yet: the first plain-text message sets it,
-            # so a brand-new install works from "/start" without editing files.
-            _cmd_city(chat_id, text)
         return
     parts = text.split(maxsplit=1)
     cmd = parts[0].split("@")[0].lower()
@@ -301,7 +319,7 @@ def run_polling() -> None:
             if settings.telegram_chat_id and str(chat_id) != str(settings.telegram_chat_id):
                 continue
             try:
-                _handle_message(chat_id, message["text"])
+                _handle_message(chat_id, message)
             except Exception as exc:
                 traceback.print_exc()
                 try:

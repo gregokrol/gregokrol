@@ -10,6 +10,13 @@ from app.config import settings
 from app.db import db, init_db
 
 
+def msg(text: str, *, reply_to_bot: bool = False) -> dict:
+    message = {"text": text}
+    if reply_to_bot:
+        message["reply_to_message"] = {"from": {"is_bot": True}}
+    return message
+
+
 @pytest.fixture
 def wired_db(tmp_path: Path, monkeypatch):
     """A DB with sample data and a city already configured (an already-set-up bot)."""
@@ -53,24 +60,24 @@ def captured_replies(monkeypatch):
 
 
 def test_unknown_command_shows_hint(captured_replies):
-    telegram_bot._handle_message(1, "/does_not_exist")
+    telegram_bot._handle_message(1, msg("/does_not_exist"))
     assert "לא מוכרת" in captured_replies[0][1]
 
 
 def test_help_lists_commands(captured_replies):
-    telegram_bot._handle_message(1, "/help")
+    telegram_bot._handle_message(1, msg("/help"))
     assert "/search" in captured_replies[0][1]
     assert "/watch" in captured_replies[0][1]
 
 
 def test_search_returns_offer(wired_db, captured_replies):
-    telegram_bot._handle_message(1, "/search חלב 3%")
+    telegram_bot._handle_message(1, msg("/search חלב 3%"))
     assert "10" in captured_replies[0][1]
     assert "חלב" in captured_replies[0][1]
 
 
 def test_basket_add_parses_quantity_and_query(wired_db, captured_replies):
-    telegram_bot._handle_message(1, "/basket_add 3 חלב 3%")
+    telegram_bot._handle_message(1, msg("/basket_add 3 חלב 3%"))
     assert "3" in captured_replies[0][1]
 
     from app.personal_lists import list_basket_items
@@ -80,19 +87,19 @@ def test_basket_add_parses_quantity_and_query(wired_db, captured_replies):
 
 
 def test_watch_then_watchlist(wired_db, captured_replies):
-    telegram_bot._handle_message(1, "/watch חלב 3%")
-    telegram_bot._handle_message(1, "/watchlist")
+    telegram_bot._handle_message(1, msg("/watch חלב 3%"))
+    telegram_bot._handle_message(1, msg("/watchlist"))
     assert "חלב" in captured_replies[-1][1]
 
 
 def test_plain_text_without_slash_is_treated_as_search(wired_db, captured_replies):
-    telegram_bot._handle_message(1, "חלב 3%")
+    telegram_bot._handle_message(1, msg("חלב 3%"))
     assert "10" in captured_replies[0][1]
     assert "חלב" in captured_replies[0][1]
 
 
 def test_bidi_control_char_before_command_is_stripped(wired_db, captured_replies):
-    telegram_bot._handle_message(1, "‏/search חלב 3%")
+    telegram_bot._handle_message(1, msg("‏/search חלב 3%"))
     assert "10" in captured_replies[0][1]
 
 
@@ -101,30 +108,53 @@ def test_first_contact_prompts_for_city(tmp_path, monkeypatch, captured_replies)
     init_db(db_path)
     monkeypatch.setattr(settings, "db_path", db_path)
 
-    telegram_bot._handle_message(1, "/start")
+    telegram_bot._handle_message(1, msg("/start"))
     assert "באיזו עיר" in captured_replies[-1][1]
 
-    telegram_bot._handle_message(1, "באר שבע")
+    telegram_bot._handle_message(1, msg("באר שבע"))
     assert "העיר עודכנה" in captured_replies[-1][1]
 
     from app.personal_lists import get_bot_city
 
     assert get_bot_city(db_path) == "באר שבע"
 
-    telegram_bot._handle_message(1, "/start")
+    telegram_bot._handle_message(1, msg("/start"))
     assert "פקודות זמינות" in captured_replies[-1][1]
 
 
 def test_city_command_shows_and_changes_city(wired_db, captured_replies):
-    telegram_bot._handle_message(1, "/city")
+    telegram_bot._handle_message(1, msg("/city"))
     assert "באר שבע" in captured_replies[-1][1]
 
-    telegram_bot._handle_message(1, "/city תל אביב")
+    telegram_bot._handle_message(1, msg("/city תל אביב"))
     assert "תל אביב" in captured_replies[-1][1]
 
     from app.personal_lists import get_bot_city
 
     assert get_bot_city(wired_db) == "תל אביב"
+
+
+def test_city_button_prompts_with_force_reply(wired_db, captured_replies):
+    telegram_bot._handle_message(1, msg(telegram_bot.CITY_BUTTON_TEXT))
+    assert "באיזו עיר" in captured_replies[-1][1]
+
+    from app.personal_lists import get_bot_city
+
+    # Tapping the button alone must not change the city yet.
+    assert get_bot_city(wired_db) == "באר שבע"
+
+
+def test_reply_to_city_prompt_sets_city_even_though_bot_already_has_one(wired_db, captured_replies):
+    # Simulates: user tapped the button, bot force-replied, user answered - the
+    # reply must be treated as the new city even though a city is already set
+    # and would normally make plain text a search instead.
+    telegram_bot._handle_message(1, msg(telegram_bot.CITY_BUTTON_TEXT))
+    telegram_bot._handle_message(1, msg("תל אביב", reply_to_bot=True))
+
+    from app.personal_lists import get_bot_city
+
+    assert get_bot_city(wired_db) == "תל אביב"
+    assert "העיר עודכנה" in captured_replies[-1][1]
 
 
 def test_register_bot_commands_calls_set_my_commands(monkeypatch):
