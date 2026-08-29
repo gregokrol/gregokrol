@@ -13,6 +13,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from app.win_compat import install_fcntl_stub
+
+install_fcntl_stub()
+
 from app.city_cache import (
     claim_city_refresh,
     collector_state_set,
