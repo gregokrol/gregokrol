@@ -78,7 +78,7 @@ def test_active_city_is_due_after_four_hours_and_saved_city_after_day(tmp_path: 
 
 
 def test_search_queues_non_blocking_refresh_and_returns_cache_status(tmp_path: Path, monkeypatch):
-    from app import main
+    from app import city_activation, main
 
     db_path = tmp_path / "api.sqlite3"
     init_db(db_path)
@@ -87,7 +87,7 @@ def test_search_queues_non_blocking_refresh_and_returns_cache_status(tmp_path: P
     monkeypatch.setattr(main.settings, "db_path", db_path)
     monkeypatch.setattr(main.settings, "raw_dir", tmp_path / "raw")
     monkeypatch.setattr(main.settings, "demo_mode", False)
-    monkeypatch.setattr(main, "_launch_city_refresh", launched.append)
+    monkeypatch.setattr(city_activation, "_launch_city_refresh", launched.append)
     with TestClient(main.app) as client:
         response = client.get("/api/search", params={"q": "מוצר", "city": "באר שבע"})
     assert response.status_code == 200

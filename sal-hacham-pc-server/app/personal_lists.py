@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable
 
+from .city_activation import activate_city
 from .config import settings
 from .db import db, utc_now_iso
 from .service import search_prices
@@ -9,6 +10,7 @@ from .service import search_prices
 
 def best_match(db_path, query: str, city: str | None) -> dict | None:
     """Resolve free text to the single cheapest fresh offer, used by the Telegram bot."""
+    activate_city(city)
     result = search_prices(
         db_path,
         query,

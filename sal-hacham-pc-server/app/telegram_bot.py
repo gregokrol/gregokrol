@@ -11,6 +11,7 @@ import traceback
 import httpx
 
 from .basket import compare_basket
+from .city_activation import activate_city
 from .city_cache import cache_health
 from .config import settings
 from .db import init_db
@@ -83,6 +84,7 @@ def _cmd_search(chat_id, arg: str) -> None:
     if not arg:
         _reply(chat_id, "שימוש: /search חלב 3%")
         return
+    activate_city(settings.telegram_default_city or None)
     result = search_prices(
         settings.db_path,
         arg,
@@ -118,6 +120,7 @@ def _cmd_basket(chat_id) -> None:
     if not items:
         _reply(chat_id, "הסל השמור ריק. הוסף עם /basket_add <כמות> <מוצר>.")
         return
+    activate_city(settings.telegram_default_city or None)
     result = compare_basket(
         settings.db_path,
         [{"q": i["label"], "qty": i["qty"]} for i in items],

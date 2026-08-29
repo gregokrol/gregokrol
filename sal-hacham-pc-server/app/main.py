@@ -3,8 +3,6 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from pathlib import Path
 import secrets
-import subprocess
-import sys
 from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Query, Request
@@ -13,14 +11,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .basket import compare_basket
-from .city_cache import (
-    cache_health,
-    cached_cities,
-    city_cache_status,
-    cleanup_evicted_storage,
-    queue_city_if_due,
-    touch_city,
-)
+from .city_activation import activate_city
+from .city_cache import cache_health, cached_cities
 from .config import settings
 from .db import init_db
 from .demo import seed_demo
@@ -56,7 +48,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="סל חכם", version="7.6.0", lifespan=lifespan)
 STATIC = Path(__file__).resolve().parent / "static"
-ROOT = Path(__file__).resolve().parent.parent
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
@@ -73,54 +64,6 @@ async def protect_public_api(request: Request, call_next):
 def _validate_location(lat: float | None, lng: float | None) -> None:
     if (lat is None) != (lng is None):
         raise HTTPException(status_code=422, detail="lat and lng must be supplied together")
-
-
-def _launch_city_refresh(city: str) -> None:
-    logs = settings.raw_dir.parent.parent / "logs"
-    logs.mkdir(parents=True, exist_ok=True)
-    log_path = logs / "sync.log"
-    creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-    with log_path.open("a", encoding="utf-8") as log:
-        subprocess.Popen(
-            [sys.executable, str(ROOT / "scripts" / "sync_prices.py"), "--city", city],
-            cwd=ROOT,
-            stdin=subprocess.DEVNULL,
-            stdout=log,
-            stderr=subprocess.STDOUT,
-            close_fds=True,
-            creationflags=creationflags,
-        )
-
-
-def _activate_city(city: str | None) -> dict | None:
-    if not city or not city.strip():
-        return None
-    if settings.demo_mode:
-        return None
-    touched = touch_city(settings.db_path, city, settings.max_cached_cities)
-    if not touched:
-        return None
-    cleanup_evicted_storage(settings.raw_dir, touched["evicted"])
-    queued = queue_city_if_due(
-        settings.db_path,
-        touched["city_key"],
-        active_hours=settings.active_city_refresh_hours,
-        inactive_hours=settings.inactive_city_refresh_hours,
-    )
-    if queued and not settings.demo_mode:
-        try:
-            _launch_city_refresh(touched["city_name"])
-        except Exception as exc:
-            # The hourly scheduler will pick up the queued city even if spawning the
-            # immediate worker failed, so the request can still return cached data.
-            print(f"Could not start city refresh: {type(exc).__name__}: {exc}", flush=True)
-    return city_cache_status(
-        settings.db_path,
-        touched["city_name"],
-        max_cities=settings.max_cached_cities,
-        active_hours=settings.active_city_refresh_hours,
-        inactive_hours=settings.inactive_city_refresh_hours,
-    )
 
 
 @app.get("/")
@@ -209,7 +152,7 @@ def search(
     limit: Annotated[int, Query(ge=1, le=5000)] = 500,
 ):
     _validate_location(lat, lng)
-    cache = _activate_city(city)
+    cache = activate_city(city)
     result = search_prices(
         settings.db_path,
         q,
@@ -229,7 +172,7 @@ def search(
 @app.post("/api/basket")
 def basket(payload: BasketRequest):
     _validate_location(payload.lat, payload.lng)
-    cache = _activate_city(payload.city)
+    cache = activate_city(payload.city)
     result = compare_basket(
         settings.db_path,
         [item.model_dump() for item in payload.items],

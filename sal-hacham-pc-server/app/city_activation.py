@@ -1,0 +1,62 @@
+"""Shared "a city was searched" bookkeeping used by both the HTTP API and the
+Telegram bot: touches the five-city cache and spawns a background refresh for
+a city that is due, so any entry point that searches also keeps data fresh.
+"""
+from __future__ import annotations
+
+import subprocess
+import sys
+from pathlib import Path
+
+from .city_cache import cleanup_evicted_storage, city_cache_status, queue_city_if_due, touch_city
+from .config import settings
+
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def _launch_city_refresh(city: str) -> None:
+    logs = settings.raw_dir.parent.parent / "logs"
+    logs.mkdir(parents=True, exist_ok=True)
+    log_path = logs / "sync.log"
+    creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    with log_path.open("a", encoding="utf-8") as log:
+        subprocess.Popen(
+            [sys.executable, str(ROOT / "scripts" / "sync_prices.py"), "--city", city],
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            close_fds=True,
+            creationflags=creationflags,
+        )
+
+
+def activate_city(city: str | None) -> dict | None:
+    if not city or not city.strip():
+        return None
+    if settings.demo_mode:
+        return None
+    touched = touch_city(settings.db_path, city, settings.max_cached_cities)
+    if not touched:
+        return None
+    cleanup_evicted_storage(settings.raw_dir, touched["evicted"])
+    queued = queue_city_if_due(
+        settings.db_path,
+        touched["city_key"],
+        active_hours=settings.active_city_refresh_hours,
+        inactive_hours=settings.inactive_city_refresh_hours,
+    )
+    if queued and not settings.demo_mode:
+        try:
+            _launch_city_refresh(touched["city_name"])
+        except Exception as exc:
+            # The hourly scheduler will pick up the queued city even if spawning the
+            # immediate worker failed, so the caller can still return cached data.
+            print(f"Could not start city refresh: {type(exc).__name__}: {exc}", flush=True)
+    return city_cache_status(
+        settings.db_path,
+        touched["city_name"],
+        max_cities=settings.max_cached_cities,
+        active_hours=settings.active_city_refresh_hours,
+        inactive_hours=settings.inactive_city_refresh_hours,
+    )
