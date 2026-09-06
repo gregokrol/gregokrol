@@ -8,7 +8,7 @@ from ..price_history import record_price_observation
 from ..source_registry import CHAIN_DISPLAY
 from .xml_parser import parse_records, timestamp_from_filename
 
-PARSER_VERSION = 5
+PARSER_VERSION = 6
 
 CHAIN_ID_TO_KEY = {
     "7290027600007": "SHUFERSAL",
