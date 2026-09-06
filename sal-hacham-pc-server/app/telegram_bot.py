@@ -111,6 +111,22 @@ def _format_offer(offer: dict) -> str:
     return line
 
 
+def _dedupe_by_barcode(hits: list[dict]) -> list[dict]:
+    """Keep only the cheapest instance of each distinct product. search_prices
+    already sorts by relevance then price ascending, so the first occurrence
+    of a barcode is its cheapest - otherwise the same item at two branches of
+    one chain (often the same price, since chains price uniformly) shows up
+    as near-identical repeated lines instead of one entry per real product."""
+    seen: set[str] = set()
+    out = []
+    for h in hits:
+        if h["barcode"] in seen:
+            continue
+        seen.add(h["barcode"])
+        out.append(h)
+    return out
+
+
 def _diversify_by_chain(hits: list[dict], limit: int, max_per_chain: int = 1) -> list[dict]:
     """Prefer one branch per chain first, so a chain with many branches in the
     same city (all at its own cheapest price) doesn't crowd out every other
@@ -154,7 +170,7 @@ def _cmd_search(chat_id, arg: str) -> None:
         max_results=30,
         history_days=settings.price_history_days,
     )
-    hits = _diversify_by_chain(result.get("results") or [], limit=5)
+    hits = _diversify_by_chain(_dedupe_by_barcode(result.get("results") or []), limit=5)
     if not hits:
         _reply(chat_id, f'לא נמצא מחיר טרי עבור "{arg}".')
         return
