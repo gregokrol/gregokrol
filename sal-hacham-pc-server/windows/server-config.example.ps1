@@ -4,7 +4,12 @@ $SchedulerMinutes = 60
 $MaxCachedCities = 5
 $ActiveCityRefreshHours = 4
 $SavedCityRefreshHours = 24
-$MaxPriceAgeHours = 5
+# Chains publish one full catalog per store early each morning and only small
+# incremental deltas the rest of the day, so "freshness" here means how old
+# the SOURCE file itself is, not how recently we last scraped it. A short
+# window (e.g. 5) makes most of a store's catalog look "stale" and disappear
+# from search for most of the day even right after a successful re-sync.
+$MaxPriceAgeHours = 27
 $PriceHistoryDays = 30
 
 # Optional: Telegram bot for price-drop alerts and remote /search, /basket, /status

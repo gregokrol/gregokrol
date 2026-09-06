@@ -9,7 +9,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 @dataclass
 class Settings:
     db_path: Path = Path(os.getenv("SAL_HACHAM_DB", str(BASE_DIR / "data" / "sal_hacham.sqlite3")))
-    max_price_age_hours: int = int(os.getenv("SAL_HACHAM_MAX_AGE_HOURS", "5"))
+    # Chains publish one full catalog per store early each morning and only
+    # small incremental deltas afterward, so this must span a full publish
+    # cycle - otherwise most of a store's catalog looks "stale" and vanishes
+    # from search for most of the day even right after a successful re-sync.
+    max_price_age_hours: int = int(os.getenv("SAL_HACHAM_MAX_AGE_HOURS", "27"))
     default_radius_km: float = float(os.getenv("SAL_HACHAM_RADIUS_KM", "30"))
     demo_mode: bool = os.getenv("SAL_HACHAM_DEMO", "1").strip().lower() not in {"0", "false", "no"}
     raw_dir: Path = Path(os.getenv("SAL_HACHAM_RAW_DIR", str(BASE_DIR / "data" / "raw")))
