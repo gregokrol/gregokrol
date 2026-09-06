@@ -8,7 +8,7 @@ from typing import Any
 
 from .db import connect, db, utc_now_iso
 from .search import normalize
-from .service import normalize_city
+from .service import fold_city_spelling, normalize_city
 
 
 def _parse_timestamp(value: str | None) -> datetime | None:
@@ -31,7 +31,7 @@ def city_storage_token(city_key: str) -> str:
 def _store_belongs_to_city(store, city_key: str) -> bool:
     if normalize_city(store["city"]) == city_key:
         return True
-    location = normalize(f"{store['name'] or ''} {store['address'] or ''}")
+    location = fold_city_spelling(normalize(f"{store['name'] or ''} {store['address'] or ''}"))
     return bool(city_key and city_key in location)
 
 

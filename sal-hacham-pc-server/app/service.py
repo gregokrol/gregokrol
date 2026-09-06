@@ -19,9 +19,19 @@ CITY_ALIASES = {
 }
 
 
+def fold_city_spelling(text: str) -> str:
+    """Collapse the double-vav/single-vav spelling ambiguity common to many
+    Hebrew place names (e.g. תקווה/תקוה - both are standard for Petah Tikva),
+    which chains spell inconsistently in their own store city/name/address
+    fields. Applied only to city matching, never to general product search."""
+    return text.replace("וו", "ו")
+
+
 def normalize_city(value: str | None) -> str:
     n = normalize(value or "")
-    return CITY_ALIASES.get(n, n)
+    if n in CITY_ALIASES:
+        return CITY_ALIASES[n]
+    return fold_city_spelling(n)
 
 
 def _store_matches(
@@ -39,7 +49,7 @@ def _store_matches(
     if not use_geo:
         city_norm = normalize_city(city)
         if city_norm and normalize_city(row["city"]) != city_norm:
-            location_text = normalize(f"{row['name'] or ''} {row['address'] or ''}")
+            location_text = fold_city_spelling(normalize(f"{row['name'] or ''} {row['address'] or ''}"))
             if city_norm not in location_text:
                 return False, None
 
