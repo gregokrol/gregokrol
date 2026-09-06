@@ -4,6 +4,7 @@ a city that is due, so any entry point that searches also keeps data fresh.
 """
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -19,6 +20,12 @@ def _launch_city_refresh(city: str) -> None:
     logs.mkdir(parents=True, exist_ok=True)
     log_path = logs / "sync.log"
     creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    # Redirecting to a UTF-8-opened file here doesn't make the child use UTF-8:
+    # the child picks its own stdout encoding from the OS locale once its stdout
+    # isn't an actual console, which on Windows is a non-Unicode codepage (e.g.
+    # cp1252) that can't encode Hebrew city/chain names - crashing the whole
+    # sync with UnicodeEncodeError. Force UTF-8 for the child explicitly.
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
     with log_path.open("a", encoding="utf-8") as log:
         subprocess.Popen(
             [sys.executable, str(ROOT / "scripts" / "sync_prices.py"), "--city", city],
@@ -28,6 +35,7 @@ def _launch_city_refresh(city: str) -> None:
             stderr=subprocess.STDOUT,
             close_fds=True,
             creationflags=creationflags,
+            env=env,
         )
 
 

@@ -60,6 +60,12 @@ function Get-ServerPython {
 }
 
 function Set-ServerEnvironment([hashtable]$Config) {
+    # Python only uses UTF-8 for its own stdout/stderr automatically when attached
+    # to a real console. Once redirected to a file/pipe (as every scheduled task
+    # here does), it falls back to the system's ANSI codepage - which can't encode
+    # Hebrew and crashes the whole process (UnicodeEncodeError: 'charmap' codec).
+    $env:PYTHONIOENCODING = "utf-8"
+    $env:PYTHONUTF8 = "1"
     $env:SAL_HACHAM_API_TOKEN = $Config.ApiToken
     $env:SAL_HACHAM_DEMO = "0"
     $env:SAL_HACHAM_MAX_AGE_HOURS = [string]$Config.MaxPriceAgeHours
