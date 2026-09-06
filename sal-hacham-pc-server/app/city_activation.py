@@ -18,7 +18,11 @@ ROOT = Path(__file__).resolve().parent.parent
 def _launch_city_refresh(city: str) -> None:
     logs = settings.raw_dir.parent.parent / "logs"
     logs.mkdir(parents=True, exist_ok=True)
-    log_path = logs / "sync.log"
+    # A separate file from the scheduled task's sync.log: on Windows, that task's
+    # own PowerShell redirection (*>> $log) holds the file open with a sharing
+    # mode that denies other writers for as long as it runs, so opening the same
+    # path from here while it's active fails with PermissionError.
+    log_path = logs / "city_refresh.log"
     creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
     # Redirecting to a UTF-8-opened file here doesn't make the child use UTF-8:
     # the child picks its own stdout encoding from the OS locale once its stdout
