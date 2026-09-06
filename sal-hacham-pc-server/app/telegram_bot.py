@@ -89,6 +89,15 @@ def _reply(chat_id, text: str, *, ask_for_city: bool = False) -> None:
     _call("sendMessage", chat_id=chat_id, text=text[:4000], reply_markup=reply_markup)
 
 
+def _format_promo(promo: dict) -> str:
+    text = f"\N{LABEL} מבצע: {promo['description']}"
+    if promo.get("saving"):
+        text += f" (חיסכון {round(promo['saving'], 2)} ש\"ח)"
+    elif promo.get("is_coupon"):
+        text += " (קופון)"
+    return text
+
+
 def _format_offer(offer: dict) -> str:
     name = offer["product_name"]
     if offer.get("package_label"):
@@ -96,7 +105,10 @@ def _format_offer(offer: dict) -> str:
     parts = [f"{offer['price']} ש\"ח - {name}", f"{offer['chain_name']} {offer['store_name']}"]
     if offer.get("city"):
         parts.append(offer["city"])
-    return " | ".join(parts)
+    line = " | ".join(parts)
+    for promo in offer.get("offers") or []:
+        line += "\n  " + _format_promo(promo)
+    return line
 
 
 def _diversify_by_chain(hits: list[dict], limit: int, max_per_chain: int = 1) -> list[dict]:
