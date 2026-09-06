@@ -33,9 +33,14 @@ def _stable_store_id(chain_key: str, store_number: str) -> str:
 
 def infer_chain_key(path: Path) -> str | None:
     hay = " ".join(path.parts).upper().replace("-", "_").replace(" ", "_")
+    # The scraper library's own folder names are camelCase run together with no
+    # separator (e.g. "TivTaam", not "Tiv_Taam"), so a multi-word registry key
+    # like TIV_TAAM never matches hay literally - only its underscore-stripped
+    # form does. Without this, such a chain's own key is never recognized and
+    # every file falls back to its raw numeric chain id instead.
     # Longest first so VICTORY_NEW_SOURCE wins over a shorter legacy name.
     for key in sorted(CHAIN_DISPLAY, key=len, reverse=True):
-        if key in hay:
+        if key in hay or key.replace("_", "") in hay:
             return key
     aliases = {
         "DABACH": "SALACH_DABACH",
