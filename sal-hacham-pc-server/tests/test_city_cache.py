@@ -87,7 +87,7 @@ def test_search_queues_non_blocking_refresh_and_returns_cache_status(tmp_path: P
     monkeypatch.setattr(main.settings, "db_path", db_path)
     monkeypatch.setattr(main.settings, "raw_dir", tmp_path / "raw")
     monkeypatch.setattr(main.settings, "demo_mode", False)
-    monkeypatch.setattr(city_activation, "_launch_city_refresh", launched.append)
+    monkeypatch.setattr(city_activation, "_launch_city_refresh", lambda name, key: launched.append(name))
     with TestClient(main.app) as client:
         response = client.get("/api/search", params={"q": "מוצר", "city": "באר שבע"})
     assert response.status_code == 200

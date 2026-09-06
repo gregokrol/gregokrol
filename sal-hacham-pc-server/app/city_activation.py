@@ -9,20 +9,28 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .city_cache import cleanup_evicted_storage, city_cache_status, queue_city_if_due, touch_city
+from .city_cache import (
+    city_storage_token,
+    cleanup_evicted_storage,
+    city_cache_status,
+    queue_city_if_due,
+    touch_city,
+)
 from .config import settings
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def _launch_city_refresh(city: str) -> None:
+def _launch_city_refresh(city: str, city_key: str) -> None:
     logs = settings.raw_dir.parent.parent / "logs"
     logs.mkdir(parents=True, exist_ok=True)
-    # A separate file from the scheduled task's sync.log: on Windows, that task's
-    # own PowerShell redirection (*>> $log) holds the file open with a sharing
-    # mode that denies other writers for as long as it runs, so opening the same
-    # path from here while it's active fails with PermissionError.
-    log_path = logs / "city_refresh.log"
+    # One file per city, not shared with the scheduled task's sync.log or with
+    # each other: on Windows, a PowerShell/Python redirection holds the log file
+    # open with a sharing mode that denies other writers for as long as the
+    # process runs, so two refreshes racing on the same path fail with
+    # PermissionError (this happened with the scheduled task before; with two
+    # cities refreshing at once it would happen here too without this).
+    log_path = logs / f"city_refresh_{city_storage_token(city_key)}.log"
     creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
     # Redirecting to a UTF-8-opened file here doesn't make the child use UTF-8:
     # the child picks its own stdout encoding from the OS locale once its stdout
@@ -60,7 +68,7 @@ def activate_city(city: str | None) -> dict | None:
     )
     if queued and not settings.demo_mode:
         try:
-            _launch_city_refresh(touched["city_name"])
+            _launch_city_refresh(touched["city_name"], touched["city_key"])
         except Exception as exc:
             # The hourly scheduler will pick up the queued city even if spawning the
             # immediate worker failed, so the caller can still return cached data.
