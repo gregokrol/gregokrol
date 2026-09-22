@@ -71,6 +71,7 @@ def relevance(query: str, name: str, manufacturer: str = "", barcode: str = "") 
 
     score = 60.0
     name_norm = normalize(name)
+    name_tokens = tokens(name_norm)
     if qn == name_norm:
         score += 50
     elif qn in name_norm:
@@ -78,7 +79,15 @@ def relevance(query: str, name: str, manufacturer: str = "", barcode: str = "") 
 
     exact = sum(1 for t in qt if t in cts)
     score += 8 * exact
-    score -= max(0, len(tokens(name_norm)) - len(qt)) * 0.25
+    # A short name close in length to the query is the product the query names
+    # (e.g. "חלב 3%, 1 ליטר" for "חלב"); a long compound name that merely
+    # mentions the query word once (e.g. "ריבת חלב", "שוקולד חלב צימוק ואגוז")
+    # must not score the same - otherwise, with everything packed within a
+    # couple of points, price alone decides and the actual staple keeps
+    # losing to unrelated cheaper products that happen to contain the word.
+    score -= max(0, len(name_tokens) - len(qt)) * 1.5
+    if name_tokens[:1] == qt[:1]:
+        score += 10
     return max(score, 0.0)
 
 
